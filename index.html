@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>حجز ملاعب</title>
+<style>
+body {font-family: Tahoma, Arial; background:#f7fff7; margin:0}
+header {background:#e8f5e9; padding:20px; text-align:center}
+h1 {color:#2e7d32}
+.container {max-width:700px; margin:30px auto; background:#fff; border-radius:10px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,.1)}
+label {display:block; margin-top:15px; font-weight:bold}
+input, select, button {width:100%; padding:10px; margin-top:8px; border-radius:6px; border:1px solid #ccc}
+button {background:#43a047; color:#fff; border:none; margin-top:20px; cursor:pointer}
+button:hover {background:#388e3c}
+.pay-box {display:none; background:#f1f8f4; padding:10px; border-radius:8px; margin-top:10px}
+.note {font-size:13px; margin-top:15px; color:#555}
+.info-box {background:#fff3e0; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid #ffcc80}
+.info-box b {color:#e65100}
+input[type="date"] {cursor:pointer;}
+</style>
+</head>
+<body>
+<header>
+<h1>حجز ملاعب</h1>
+</header>
+
+<div class="container">
+
+<form id="bookingForm">
+
+<label>اسم الحاجز</label>
+<input type="text" id="name" required />
+
+<label>رقم تواصل</label>
+<input type="text" id="phone" required />
+
+<label>اختيار الملعب</label>
+<select id="field" required>
+  <option value="">اختر ملعب</option>
+  <option>الملعب الأول</option>
+  <option>الملعب الثاني</option>
+</select>
+
+<!-- اختيار التاريخ -->
+<label>تاريخ الحجز</label>
+<input type="date" id="date" required min="<?= new Date().toISOString().split('T')[0] ?>">
+
+<!-- بوكس العربون والمبلغ المسترد قبل الدفع -->
+<div class="info-box">
+<b>عربون الملعب:</b> 50 جنيه<br>
+<b>رسوم أونلاين إضافية:</b> 10 جنيه<br>
+<b>المبلغ المسترد عبر الدفع الأونلاين:</b> 60 جنيه
+</div>
+
+<label>ميعاد اليوم (صباح وبليل)</label>
+<select id="time" required>
+  <option value="">اختر ميعاد</option>
+  <!-- الصباح -->
+  <option>06:00 صباحًا</option>
+  <option>07:00 صباحًا</option>
+  <option>08:00 صباحًا</option>
+  <option>09:00 صباحًا</option>
+  <option>10:00 صباحًا</option>
+  <option>11:00 صباحًا</option>
+  <option>12:00 ظهرًا</option>
+  <option>01:00 ظهرًا</option>
+  <option>02:00 ظهرًا</option>
+  <option>03:00 عصرًا</option>
+  <!-- المساء -->
+  <option>04:00 عصرًا</option>
+  <option>05:00 مساءً</option>
+  <option>06:00 مساءً</option>
+  <option>07:00 مساءً</option>
+  <option>08:00 مساءً</option>
+  <option>09:00 مساءً</option>
+  <option>10:00 مساءً</option>
+  <option>11:00 مساءً</option>
+  <option>12:00 منتصف الليل</option>
+  <option>01:00 صباحًا</option>
+  <option>02:00 صباحًا</option>
+  <option>03:00 صباحًا</option>
+</select>
+
+<label>طريقة الدفع</label>
+<select id="payment" required>
+  <option value="">اختر طريقة الدفع</option>
+  <option value="cash">كاش / تحويل</option>
+  <option value="visa">فيزا (بنوك مصرية)</option>
+  <option value="instapay">إنستا باي</option>
+</select>
+
+<div id="cashBox" class="pay-box">
+التحويل على رقم <b>01210271841</b><br>
+ارفع صورة إيصال الدفع
+<input type="file" id="cashImg" />
+</div>
+
+<div id="visaBox" class="pay-box">
+دفع فيزا عبر بوابة بنوك مصرية (المبلغ المسترد: 50 جنيه + رسوم أونلاين: 10 جنيه)
+</div>
+
+<div id="instaBox" class="pay-box">
+التحويل إنستا باي على <b>01210271841</b><br>
+ارفع صورة إيصال التحويل (المبلغ المسترد: 50 جنيه + رسوم أونلاين: 10 جنيه)
+<input type="file" id="instaImg" />
+</div>
+
+<button type="submit">تأكيد الحجز والدفع</button>
+<div id="statusBox" class="pay-box" style="background:#e8f5e9; color:#2e7d32"></div>
+</form>
+
+<div class="note">عند تأكيد الحجز يتم إرسال رسالة تلقائيًا للعميل وصاحب الملعب.</div>
+</div>
+
+<script>
+const GOOGLE_SCRIPT_URL = 'PUT_YOUR_DEPLOYED_VERCEL_API_URL_HERE';
+const bookingForm = document.getElementById('bookingForm');
+const payment = document.getElementById('payment');
+const cashBox = document.getElementById('cashBox');
+const visaBox = document.getElementById('visaBox');
+const instaBox = document.getElementById('instaBox');
+const statusBox = document.getElementById('statusBox');
+const field = document.getElementById('field');
+const cashImg = document.getElementById('cashImg');
+const instaImg = document.getElementById('instaImg');
+
+payment.addEventListener('change', () => {
+  cashBox.style.display = visaBox.style.display = instaBox.style.display = 'none';
+  if(payment.value==='cash') cashBox.style.display='block';
+  if(payment.value==='visa') visaBox.style.display='block';
+  if(payment.value==='instapay') instaBox.style.display='block';
+});
+
+bookingForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!payment.value){ alert('يجب اختيار طريقة دفع'); return; }
+
+  let img_base64 = '';
+  if(payment.value==='cash' && cashImg.files.length) img_base64 = await toBase64(cashImg.files[0]);
+  if(payment.value==='instapay' && instaImg.files.length) img_base64 = await toBase64(instaImg.files[0]);
+
+  const data = {
+    name:name.value,
+    phone:phone.value,
+    field:field.value,
+    time:time.value,
+    payment:payment.value,
+    status: payment.value==='visa'?'confirmed':'pending',
+    img_base64
+  };
+
+  try{
+    const res = await fetch(GOOGLE_SCRIPT_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    statusBox.style.display='block';
+    statusBox.innerText = result.success? 
+      (data.status==='pending'?'تم استلام الحجز':'تم تأكيد الحجز') : result.message;
+    bookingForm.reset();
+  }catch(e){ alert('حدث خطأ أثناء الحجز'); console.error(e);}
+});
+
+function toBase64(file){ 
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = ()=>resolve(reader.result);
+    reader.onerror = error=>reject(error);
+  });
+}
+</script>
+</body>
+</html>
